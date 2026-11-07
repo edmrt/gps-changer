@@ -1,0 +1,31 @@
+name: GPSChanger
+options:
+  bundleIdPrefix: com.edmrt
+  deploymentTarget:
+    macOS: "26.0"
+targets:
+  GPSChanger:
+    type: application
+    platform: macOS
+    sources: [GPSChanger]
+    info:
+      path: Config/Info.plist
+      properties:
+        CFBundleDisplayName: GPS Changer
+        CFBundleName: GPS Changer
+        LSApplicationCategoryType: public.app-category.developer-tools
+        NSHumanReadableCopyright: ""
+    settings:
+      base:
+        PRODUCT_NAME: GPS Changer
+        PRODUCT_BUNDLE_IDENTIFIER: com.edmrt.gpschanger
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.0"
+        # Runs Apple's devicectl (xcrun), so no App Sandbox.
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: NO
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: NO
