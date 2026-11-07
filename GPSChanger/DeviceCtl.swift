@@ -68,9 +68,23 @@ enum DeviceCtl {
             let text = String(decoding: errPipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
             p.waitUntilExit()
             let json = (try? Data(contentsOf: out)) ?? Data()
-            guard p.terminationStatus == 0 else { throw Failure(message: message(json: json, text: text)) }
+            let ok = p.terminationStatus == 0
+            log("devicectl \(args.joined(separator: " ")) → \(ok ? "ok" : "exit \(p.terminationStatus): \(message(json: json, text: text))")")
+            guard ok else { throw Failure(message: message(json: json, text: text)) }
             return json
         }.value
+    }
+
+    // ~/Library/Logs/GPS Changer.log: every devicectl run and how it ended.
+    static func log(_ line: String) {
+        let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/GPS Changer.log")
+        let stamp = ISO8601DateFormatter().string(from: Date())
+        let data = Data("\(stamp) \(line)\n".utf8)
+        if let h = try? FileHandle(forWritingTo: url) {
+            h.seekToEndOfFile(); h.write(data); try? h.close()
+        } else {
+            try? data.write(to: url)
+        }
     }
 
     private static func message(json: Data, text: String) -> String {
