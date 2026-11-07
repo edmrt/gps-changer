@@ -159,11 +159,19 @@ final class PlaceStore: ObservableObject {
         recent = Array(recent.prefix(12))
     }
 
+    // Debug snapshot runs (GPS_SNAPSHOT) keep their sample places apart from the real ones.
+    private static var defaults: UserDefaults {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["GPS_SNAPSHOT"] != nil { return UserDefaults(suiteName: "gps-changer-snapshot")! }
+        #endif
+        return .standard
+    }
+
     private static func load(_ key: String) -> [Place] {
-        UserDefaults.standard.data(forKey: key).flatMap { try? JSONDecoder().decode([Place].self, from: $0) } ?? []
+        defaults.data(forKey: key).flatMap { try? JSONDecoder().decode([Place].self, from: $0) } ?? []
     }
 
     private func store(_ places: [Place], _ key: String) {
-        UserDefaults.standard.set(try? JSONEncoder().encode(places), forKey: key)
+        Self.defaults.set(try? JSONEncoder().encode(places), forKey: key)
     }
 }

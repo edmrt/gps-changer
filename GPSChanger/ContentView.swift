@@ -49,7 +49,12 @@ struct ContentView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) { devicePicker }
         }
-        .task { await loadDevices() }
+        .task {
+            await loadDevices()
+            #if DEBUG
+            if let path = ProcessInfo.processInfo.environment["GPS_SNAPSHOT"] { await snapshot(to: path) }
+            #endif
+        }
     }
 
     // MARK: Sidebar
@@ -227,7 +232,8 @@ struct ContentView: View {
             Picker("iPhone", selection: $deviceID) {
                 if devices.isEmpty { Text(loadingDevices ? "Looking for iPhones…" : "No iPhone found").tag(Device.ID?.none) }
                 ForEach(devices) { d in
-                    Label("\(d.name)  ·  iOS \(d.os)", systemImage: d.model == "iPad" ? "ipad" : "iphone").tag(Optional(d.id))
+                    // Plain text: a Label in a toolbar picker shows only its icon.
+                    Text("\(d.name)  ·  iOS \(d.os)").tag(Optional(d.id))
                 }
             }
             .frame(minWidth: 240)
@@ -345,4 +351,39 @@ struct ContentView: View {
         guard !name.isEmpty, let i = places.saved.firstIndex(where: { $0.id == p.id }) else { return }
         places.saved[i].name = name
     }
+
+    #if DEBUG
+    // GPS_SNAPSHOT=/path.png: a sample session (README picture), then the window drawn into a PNG and quit.
+    private func snapshot(to path: String) async {
+        let tower = Place(name: "CN Tower, 290 Bremner Blvd, Toronto", .init(latitude: 43.642566, longitude: -79.387057))
+        places.saved = [
+            tower,
+            Place(name: "Eiffel Tower, Paris", .init(latitude: 48.858370, longitude: 2.294481)),
+            Place(name: "Times Square, New York", .init(latitude: 40.758000, longitude: -73.985500)),
+        ]
+        places.recent = [
+            Place(name: "Shibuya Crossing, Tokyo", .init(latitude: 35.659500, longitude: 139.700500)),
+            Place(name: "Golden Gate Bridge, San Francisco", .init(latitude: 37.819900, longitude: -122.478300)),
+        ]
+        query = tower.name
+        choose(tower)
+        if let device { applied[device.id] = tower }
+        status = .init(text: "\(device?.name ?? "iPhone") is now at \(tower.name).")
+        guard let window = NSApp.windows.first(where: { $0.isVisible }) else { return }
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
+        try? await Task.sleep(for: .seconds(8))   // map tiles
+        // The window server's own picture of this app's window (blur, toolbar and map included). The function is
+        // marked unavailable in the SDK but still there; an app may capture its own windows without permission.
+        typealias Capture = @convention(c) (CGRect, UInt32, UInt32, UInt32) -> Unmanaged<CGImage>?
+        if let sym = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "CGWindowListCreateImage"),
+           let image = unsafeBitCast(sym, to: Capture.self)(.null, 1 << 3 /* including window */, UInt32(window.windowNumber), 1 | 8 /* ignore framing, best resolution */)?.takeRetainedValue() {
+            let rep = NSBitmapImageRep(cgImage: image)
+            try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
+        }
+        NSApp.terminate(nil)
+    }
+    #endif
 }

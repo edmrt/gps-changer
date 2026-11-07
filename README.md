@@ -5,6 +5,8 @@ coordinates (decimal, degrees-minutes-seconds, N/S/E/W, or a Google/Apple Maps l
 **Set iPhone Location**. **Use Real Location** turns it off and the iPhone goes back to its real GPS.
 Saved and recent places are in the sidebar.
 
+![GPS Changer](docs/screenshot.png)
+
 It uses Apple's own location simulation (`xcrun devicectl device simulate location`, the same thing Xcode does), so
 nothing is installed on the iPhone.
 
